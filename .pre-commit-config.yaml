@@ -18,7 +18,7 @@ repos:
   - id: mixed-line-ending
     args: ['--fix=no']
 -   repo: https://github.com/PyCQA/flake8
-    rev: '3.9.2'  # pick a git hash / tag to point to
+    rev: '4.0.1'  # pick a git hash / tag to point to
     hooks:
     -   id: flake8
         additional_dependencies:
@@ -33,7 +33,7 @@ repos:
           - flake8-comprehensions
           - flake8-print
 -   repo: https://github.com/psf/black
-    rev: 21.8b0
+    rev: 21.10b0
     hooks:
     - id: black
 -   repo: https://github.com/pre-commit/pygrep-hooks
@@ -46,6 +46,6 @@ repos:
   - id: isort
 
 - repo: https://github.com/asottile/pyupgrade
-  rev: v2.26.0
+  rev: v2.29.0
   hooks:
   -   id: pyupgrade
