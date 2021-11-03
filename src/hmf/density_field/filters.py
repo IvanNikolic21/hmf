@@ -56,11 +56,24 @@ class Filter(_framework.Component):
     necessarily the case for window functions of arbitrary shape.
     """
 
-    def __init__(self, k, power, **model_parameters):
+    def __init__(self, k, power, conditional_radius=None, **model_parameters):
         self.k = k
         self.power = power
+        self.conditional_radius = conditional_radius
 
         super(Filter, self).__init__(**model_parameters)
+
+    def sigma_env(self,order=0 ):
+        rk = np.outer(self.conditional_radius, self.k)
+
+        dlnk = np.log(self.k[1] / self.k[0])
+
+        # we multiply by k because our steps are in logk.
+        rest = self.power * self.k ** (3 + order * 2)
+        integ = rest * self.k_space(rk) ** 2
+        sigma = (0.5 / np.pi ** 2) * intg.simps(integ, dx=dlnk, axis=-1)
+        return np.sqrt(sigma)
+
 
     def real_space(self, R, r):
         r"""
@@ -253,6 +266,8 @@ class Filter(_framework.Component):
         rest = self.power * self.k ** (3 + order * 2)
         integ = rest * self.k_space(rk) ** 2
         sigma = (0.5 / np.pi ** 2) * intg.simps(integ, dx=dlnk, axis=-1)
+        if self.conditional_radius is not None:
+            return np.sqrt(sigma-self.sigma_env())
         return np.sqrt(sigma)
 
     def nu(self, r, delta_c=1.686):
