@@ -1,5 +1,5 @@
 """A module containing various smoothing filter Component models."""
-
+import astropy.units as u
 import collections
 import numpy as np
 import scipy.integrate as intg
@@ -56,15 +56,24 @@ class Filter(_framework.Component):
     necessarily the case for window functions of arbitrary shape.
     """
 
-    def __init__(self, k, power, conditional_radius=None, **model_parameters):
+    def __init__(self, k, power, conditional_mass=None,cosmo=None, **model_parameters):
         self.k = k
         self.power = power
-        self.conditional_radius = conditional_radius
+        self.conditional_mass = conditional_mass
+        self.cosmo = cosmo
 
         super(Filter, self).__init__(**model_parameters)
 
     def sigma_env(self,order=0 ):
-        rk = np.outer(self.conditional_radius, self.k)
+        if self.cosmo:
+            rho_mean = (self.cosmo.Om0 * self.cosmo.critical_density0 / self.cosmo.h ** 2).to(u.solMass / u.Mpc ** 3).value
+        else:
+            from astropy.cosmology import Planck15 as cosmo
+            rho_mean = (cosmo.Om0 * cosmo.critical_density0 / cosmo.h ** 2).to(u.solMass / u.Mpc ** 3).value
+        if self.conditional_mass is None:
+            return 0 #then we don't even need sigma_env
+        conditional_radius = self.mass_to_radius(self.conditional_mass, rho_mean = rho_mean)
+        rk = np.outer(conditional_radius, self.k)
 
         dlnk = np.log(self.k[1] / self.k[0])
 
@@ -266,8 +275,14 @@ class Filter(_framework.Component):
         rest = self.power * self.k ** (3 + order * 2)
         integ = rest * self.k_space(rk) ** 2
         sigma = (0.5 / np.pi ** 2) * intg.simps(integ, dx=dlnk, axis=-1)
-        if self.conditional_radius is not None:
-            return np.sqrt(sigma-self.sigma_env())
+        s = self.sigma_env()**2
+        if self.conditional_mass is not None:
+            for i, sigmic in enumerate(sigma):
+                if(sigmic < s): sigma[i]=None
+            if not(None in sigma):
+                return np.sqrt(sigma-s)
+            else:
+                return np.array([x-s if x!=None else None for x in sigma])
         return np.sqrt(sigma)
 
     def nu(self, r, delta_c=1.686):

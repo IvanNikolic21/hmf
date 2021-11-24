@@ -108,7 +108,7 @@ class MassFunction(transfer.Transfer):
         filter_params: Union[dict, None] = None,
         disable_mass_conversion: bool = True,
         conditional_delta = None,
-        conditional_radius = None,
+        conditional_mass = None,
         **transfer_kwargs,
     ):
         # Call super init MUST BE DONE FIRST.
@@ -127,7 +127,7 @@ class MassFunction(transfer.Transfer):
         self.filter_model = filter_model
         self.filter_params = filter_params or {}
         self.disable_mass_conversion = disable_mass_conversion
-        self.conditional_radius = conditional_radius
+        self.conditional_mass = conditional_mass
     # ===========================================================================
     # PARAMETERS
     # ===========================================================================
@@ -312,7 +312,6 @@ class MassFunction(transfer.Transfer):
     @cached_quantity
     def hmf(self):
         """Instantiated model for the hmf fitting function."""
-        print(self.delta_c)
         return self.hmf_model(
             m=self.m,
             nu2=self.nu,
@@ -331,8 +330,7 @@ class MassFunction(transfer.Transfer):
         Note that this filter is *not* normalised -- i.e. the output of `filter.sigma(8)`
         will not be the input `sigma_8`.
         """
-        print(self.conditional_radius)
-        return self.filter_model(self.k, self._unnormalised_power, self.conditional_radius,**self.filter_params)
+        return self.filter_model(self.k, self._unnormalised_power, self.conditional_mass, cosmo=self.cosmo, **self.filter_params)
 
     @cached_quantity
     def halo_overdensity_mean(self):
@@ -347,7 +345,7 @@ class MassFunction(transfer.Transfer):
     @cached_quantity
     def normalised_filter(self):
         """A normalised filter, such that filter.sigma(8) == sigma8"""
-        return self.filter_model(self.k, self.power, **self.filter_params)
+        return self.filter_model(self.k, self.power, self.conditional_mass, cosmo=self.cosmo, **self.filter_params)
 
     @cached_quantity
     def m(self):
@@ -394,7 +392,6 @@ class MassFunction(transfer.Transfer):
         r"""
         The parameter :math:`\nu = \left(\frac{\delta_c}{\sigma}\right)^2`, ``len=len(m)``
         """
-        print("delta_c in nu func in mass_function.py \n",self.delta_c)
         return (self.delta_c / self.sigma) ** 2
 
     @cached_quantity
